@@ -2,7 +2,6 @@
   {
       "name": "Acwhisk",
       "version": "0.1.0",
-      "private": true,
       "dependencies": {
           "@radix-ui/react-accordion": "^1.2.3",
           "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -39,7 +38,7 @@
           "lucide-react": "^0.487.0",
           "motion": "*",
           "next-themes": "^0.4.6",
-          "@supabase/supabase-js": "^*"
+          "@supabase/supabase-js": "^*",
           "hono": "*",
           "react": "^18.3.1",
           "react-day-picker": "^8.10.1",
