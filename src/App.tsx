@@ -2,8 +2,6 @@ import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { AuthProvider, useAuth } from './components/AuthContext'
 import { ThemeProvider } from './components/ThemeContext'
 import { NotificationProvider } from './components/ui/notification'
-import { ErrorBoundary, AsyncErrorBoundary } from './components/ErrorBoundary'
-import { ServiceWorkerManager } from './components/ServiceWorkerManager'
 import { Auth } from './components/Auth'
 import { Layout } from './components/Layout'
 import { Dashboard } from './components/Dashboard'
@@ -307,20 +305,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AsyncErrorBoundary>
-      <ThemeProvider>
-        <NotificationProvider>
-          <ServiceWorkerManager>
-            <AuthProvider>
-              <ErrorBoundary>
-                <AppContent />
-                <OfflineIndicator />
-                <Toaster />
-              </ErrorBoundary>
-            </AuthProvider>
-          </ServiceWorkerManager>
-        </NotificationProvider>
-      </ThemeProvider>
-    </AsyncErrorBoundary>
+    <ThemeProvider>
+      <NotificationProvider>
+          <AuthProvider>
+            <AppContent />
+            <OfflineIndicator />
+            <Toaster />
+          </AuthProvider>
+      </NotificationProvider>
+    </ThemeProvider>
   )
 }
