@@ -20,7 +20,6 @@ const ChatAssistant = lazy(() => import('./components/ChatAssistant').then(m => 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })))
 const ProfileSettings = lazy(() => import('./components/ProfileSettings').then(m => ({ default: m.ProfileSettings })))
 const DigitalPortfolio = lazy(() => import('./components/DigitalPortfolio').then(m => ({ default: m.DigitalPortfolio })))
-const DatabaseSetup = lazy(() => import('./components/DatabaseSetup').then(m => ({ default: m.DatabaseSetup })))
 const ProfileInitializer = lazy(() => import('./components/ProfileInitializer').then(m => ({ default: m.ProfileInitializer })))
 const RealTimeNotifications = lazy(() => import('./components/RealTimeNotifications').then(m => ({ default: m.RealTimeNotifications })))
 const StudentFeedback = lazy(() => import('./components/StudentFeedback').then(m => ({ default: m.StudentFeedback })))
