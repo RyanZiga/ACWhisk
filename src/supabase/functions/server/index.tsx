@@ -19,24 +19,44 @@ app.use("*", logger(console.log));
 
 // Initialize Supabase client
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") || "https://boagxkdkcpqwhnawyvrj.supabase.co",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvYWd4a2RrY3Bxd2huYXd5dnJqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjUzMTg0NCwiZXhwIjoyMDcyMTA3ODQ0fQ.JJkBbeFZZtLrGzd39TiRmpLZt9cYPv0DmfmvBblRDOs",
+  Deno.env.get("SUPABASE_URL") || "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
 );
 
 // Bucket initialization removed - buckets already exist
 
 // Helper function to get user from token
 async function getUserFromToken(request: Request) {
-  const accessToken = request.headers
-    .get("Authorization")
-    ?.split(" ")[1];
+  const authHeader = request.headers.get("Authorization");
+  console.log("Auth header:", authHeader ? authHeader.substring(0, 30) + "..." : "None");
+  
+  const accessToken = authHeader?.split(" ")[1];
   if (!accessToken) {
+    console.log("No access token found in header");
     return { user: null, error: "No token provided" };
   }
 
-  const { data, error } =
-    await supabase.auth.getUser(accessToken);
-  return { user: data.user, error };
+  console.log("Attempting to get user with token:", accessToken.substring(0, 20) + "...");
+
+  try {
+    const { data, error } = await supabase.auth.getUser(accessToken);
+    
+    if (error) {
+      console.log("Supabase auth error:", error);
+      return { user: null, error: error.message };
+    }
+
+    if (data.user) {
+      console.log("User authenticated successfully:", data.user.id, data.user.email);
+    } else {
+      console.log("No user data returned from Supabase");
+    }
+
+    return { user: data.user, error };
+  } catch (err) {
+    console.log("Exception in getUserFromToken:", err);
+    return { user: null, error: "Authentication failed" };
+  }
 }
 
 // Assignment Management Routes
@@ -77,10 +97,30 @@ app.get("/make-server-cfac176d/assignments", async (c) => {
   try {
     const { user, error } = await getUserFromToken(c.req.raw);
     if (!user) {
+      console.log("No user found, error:", error);
       return c.json({ error: error || "Unauthorized" }, 401);
     }
 
+    console.log("User authenticated for assignments:", user.id);
+
+    // Check if user profile exists in KV store
+    const userProfile = await kv.get(`user:${user.id}`);
+    if (!userProfile) {
+      console.log("User profile not found, creating one for:", user.id);
+      // Create a basic profile if it doesn't exist
+      const basicProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        role: user.user_metadata?.role || 'student',
+        created_at: new Date().toISOString(),
+        profile_complete: false,
+      };
+      await kv.set(`user:${user.id}`, basicProfile);
+    }
+
     const assignments = await kv.getByPrefix("assignment:");
+    console.log("Found assignments:", assignments.length);
     return c.json({ assignments });
   } catch (error) {
     console.log("Get assignments error:", error);

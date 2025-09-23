@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
-import { supabase } from '../utils/supabase/client'
+import { getSupabaseClient } from '../utils/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Alert, AlertDescription } from './ui/alert'
@@ -61,7 +61,7 @@ export function DatabaseSetup() {
       const updatedTables = await Promise.all(
         tables.map(async (table) => {
           try {
-            const { error } = await supabase
+            const { error } = await getSupabaseClient()
               .from(table.name)
               .select('*', { count: 'exact', head: true })
               .limit(1)
@@ -268,6 +268,16 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_follows table
+CREATE TABLE IF NOT EXISTS user_follows (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  follower_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  following_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(follower_id, following_id),
+  CONSTRAINT no_self_follow CHECK (follower_id != following_id)
+);
+
 -- Create learning resources table
 CREATE TABLE IF NOT EXISTS learning_resources (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -327,6 +337,7 @@ ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_follows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learning_resources ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
@@ -404,6 +415,11 @@ CREATE POLICY "Anyone can view user achievements" ON user_achievements FOR SELEC
 CREATE POLICY "Users can create own achievements" ON user_achievements FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own achievements" ON user_achievements FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own achievements" ON user_achievements FOR DELETE USING (auth.uid() = user_id);
+
+-- User follows policies
+CREATE POLICY "Anyone can view follows" ON user_follows FOR SELECT USING (true);
+CREATE POLICY "Users can create follows" ON user_follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "Users can delete own follows" ON user_follows FOR DELETE USING (auth.uid() = follower_id);
 
 -- Learning resources policies
 CREATE POLICY "Anyone can view published resources" ON learning_resources FOR SELECT USING (is_published = true);

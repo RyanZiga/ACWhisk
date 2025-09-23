@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { Session, User as SupabaseUser } from '@supabase/supabase-js'
 import { getSupabaseClient } from '../utils/supabase/client'
 import { projectId, publicAnonKey } from '../utils/supabase/info'
 
@@ -19,10 +20,11 @@ export interface User {
 
 interface AuthContextType {
   user: User | null
-  session: any | null
+  session: Session | null
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   signUp: (email: string, password: string, name: string, role: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
   loading: boolean
   updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; error?: string }>
 }
@@ -37,97 +39,196 @@ export function useAuth() {
   return context
 }
 
+// Helper function to create basic user object from auth data
+const buildBasicUser = (authUser: Partial<SupabaseUser> = {}): User => ({
+  id: authUser.id || '',
+  email: authUser.email || '',
+  name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+  role: authUser.user_metadata?.role || 'student',
+  profile_complete: false,
+  created_at: authUser.created_at || new Date().toISOString(),
+  avatar_url: authUser.user_metadata?.avatar_url,
+  bio: undefined,
+  year_level: undefined,
+  specialization: undefined,
+  phone: undefined,
+  location: undefined
+})
+
+// Helper function to sanitize error messages for production
+const sanitizeErrorMessage = (error: any, fallbackMessage: string): string => {
+  // Get the actual error message, handling both direct messages and nested error objects
+  const errorMessage = error?.message || error?.toString() || String(error)
+  
+  // Always log the raw error in development for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Raw error for sanitization:', { error, errorMessage, fallbackMessage })
+  }
+  
+  // Apply user-friendly sanitization in both development and production
+  // Handle AuthApiError prefixes and various error formats
+  if (errorMessage.includes('Invalid login credentials') || 
+      errorMessage.includes('Invalid email or password') ||
+      errorMessage.includes('invalid_credentials')) {
+    return '❌ Invalid email or password. Please check your credentials and try again.'
+  }
+  if (errorMessage.includes('Email not confirmed') || 
+      errorMessage.includes('email_not_confirmed')) {
+    return '📧 Please check your email and confirm your account before signing in.'
+  }
+  if (errorMessage.includes('Too many requests') || 
+      errorMessage.includes('rate_limit') ||
+      errorMessage.includes('too_many_requests')) {
+    return '⏰ Too many attempts. Please wait a moment before trying again.'
+  }
+  if (errorMessage.includes('User not found') || 
+      errorMessage.includes('user_not_found')) {
+    return '🔍 No account found with this email. Please check your email or sign up.'
+  }
+  if (errorMessage.includes('User already registered') || 
+      errorMessage.includes('already_registered') ||
+      errorMessage.includes('email_address_already_registered')) {
+    return '👤 This email is already registered. Please sign in instead.'
+  }
+  if (errorMessage.includes('signup_disabled')) {
+    return '🚫 Account registration is currently disabled. Please contact support.'
+  }
+  if (errorMessage.includes('email_address_invalid')) {
+    return '📧 Please enter a valid email address.'
+  }
+  if (errorMessage.includes('password_too_short')) {
+    return '🔒 Password must be at least 6 characters long.'
+  }
+  if (errorMessage.includes('weak_password')) {
+    return '🔒 Please choose a stronger password with mixed characters.'
+  }
+  
+  return fallbackMessage
+}
+
+// Central error logging function
+const logError = (context: string, error: any) => {
+  // Enhanced logging to show the error processing flow
+  console.group(`🔐 [Auth Context] ${context}`)
+  console.error('Raw error:', error)
+  
+  // In production, you could send to monitoring service like Sentry
+  if (process.env.NODE_ENV === 'production') {
+    // Example: Sentry.captureException(error, { tags: { context } })
+  }
+  console.groupEnd()
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<any | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession] = useState<Session | null>(null)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [operationLoading, setOperationLoading] = useState(false)
 
   const supabase = getSupabaseClient()
 
   useEffect(() => {
-    // Check for existing session
-    checkSession()
+    let isMounted = true
+
+    // Get initial session immediately
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          logError('Initial session fetch', error)
+        }
+        
+        if (isMounted && initialSession?.user) {
+          setSession(initialSession)
+          await fetchUserProfile(initialSession.user, initialSession.access_token)
+        }
+      } catch (error) {
+        logError('Initialize auth error', error)
+      } finally {
+        if (isMounted) {
+          setInitialLoading(false)
+        }
+      }
+    }
+
+    initializeAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        await fetchUserProfile(session.access_token)
-      } else {
-        setUser(null)
-        setSession(null)
+      if (!isMounted) return
+
+      try {
+        if (session?.user) {
+          setSession(session)
+          // Wait for profile creation to complete to avoid race conditions
+          await fetchUserProfile(session.user, session.access_token)
+        } else {
+          setUser(null)
+          setSession(null)
+        }
+      } catch (error) {
+        logError('Auth state change error', error)
+      } finally {
+        if (isMounted && initialLoading) {
+          setInitialLoading(false)
+        }
       }
-      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const checkSession = async () => {
+  const fetchUserProfile = async (authUser: SupabaseUser, accessToken?: string) => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (session && !error) {
-        setSession(session)
-        await fetchUserProfile(session.access_token)
-      }
-    } catch (error) {
-      console.error('Session check error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchUserProfile = async (accessToken?: string) => {
-    try {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !authUser) {
-        console.error('Auth error:', authError)
-        return
+      // Use the access token if provided for better security
+      let userData: SupabaseUser = authUser
+      if (accessToken && !authUser) {
+        const { data: { user: tokenUser }, error: tokenError } = await supabase.auth.getUser(accessToken)
+        if (tokenError || !tokenUser) {
+          logError('Token validation error', tokenError)
+          return
+        }
+        userData = tokenUser
       }
 
+      // Try to fetch profile from database
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('id', userData.id)
         .maybeSingle()
 
       if (profileError) {
-        // Handle table not existing - create a basic user profile from auth data
-        if (profileError.code === 'PGRST205' || profileError.code === '42P01') {
-          console.warn('Profiles table does not exist. Using basic auth data.')
-          const userData: User = {
-            id: authUser.id,
-            email: authUser.email || '',
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-            role: 'student',
-            profile_complete: false,
-            created_at: authUser.created_at || new Date().toISOString(),
-            avatar_url: authUser.user_metadata?.avatar_url,
-            bio: undefined,
-            year_level: undefined,
-            specialization: undefined,
-            phone: undefined,
-            location: undefined
-          }
-          setUser(userData)
+        // Handle various error types - checking message and status as well as code
+        const isTableMissing = profileError.code === 'PGRST205' || 
+                              profileError.code === '42P01' ||
+                              profileError.message?.includes('relation') ||
+                              profileError.message?.includes('does not exist') ||
+                              profileError.status === 404
+        
+        if (isTableMissing) {
+          setUser(buildBasicUser(userData))
           return
         }
         
-        console.error('Profile fetch error:', profileError)
+        logError('Profile fetch error', profileError)
+        setUser(buildBasicUser(userData))
         return
       }
 
       // If no profile exists, create one
       if (!profile) {
-        console.log('No profile found for user, creating one...')
         try {
-          // First try to upsert to avoid conflicts
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .upsert({
-              id: authUser.id,
-              name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-              role: authUser.user_metadata?.role || 'student',
+              id: userData.id,
+              name: userData.user_metadata?.name || userData.email?.split('@')[0] || 'User',
+              role: userData.user_metadata?.role || 'student',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, { 
@@ -138,31 +239,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
 
           if (createError) {
-            console.error('Error creating profile:', createError)
-            // Fallback to basic user data
-            const userData: User = {
-              id: authUser.id,
-              email: authUser.email || '',
-              name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-              role: 'student',
-              profile_complete: false,
-              created_at: authUser.created_at || new Date().toISOString(),
-              avatar_url: authUser.user_metadata?.avatar_url,
-              bio: undefined,
-              year_level: undefined,
-              specialization: undefined,
-              phone: undefined,
-              location: undefined
-            }
-            setUser(userData)
+            logError('Error creating profile', createError)
+            setUser(buildBasicUser(userData))
             return
           }
 
           // Use the newly created profile
           if (newProfile) {
-            const userData: User = {
+            const user: User = {
               id: newProfile.id,
-              email: authUser.email || '',
+              email: userData.email || '',
               name: newProfile.name || 'User',
               role: newProfile.role || 'student',
               profile_complete: !!(newProfile.name && newProfile.bio),
@@ -174,34 +260,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               phone: newProfile.phone,
               location: newProfile.location
             }
-            setUser(userData)
+            setUser(user)
           }
         } catch (createProfileError) {
-          console.error('Failed to create profile:', createProfileError)
-          // Fallback to basic user data
-          const userData: User = {
-            id: authUser.id,
-            email: authUser.email || '',
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-            role: 'student',
-            profile_complete: false,
-            created_at: authUser.created_at || new Date().toISOString(),
-            avatar_url: authUser.user_metadata?.avatar_url,
-            bio: undefined,
-            year_level: undefined,
-            specialization: undefined,
-            phone: undefined,
-            location: undefined
-          }
-          setUser(userData)
+          logError('Failed to create profile', createProfileError)
+          setUser(buildBasicUser(userData))
         }
         return
       }
 
+      // Use existing profile
       if (profile) {
-        const userData: User = {
+        const user: User = {
           id: profile.id,
-          email: authUser.email || '',
+          email: userData.email || '',
           name: profile.name || 'User',
           role: profile.role || 'student',
           profile_complete: !!(profile.name && profile.bio),
@@ -213,107 +285,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phone: profile.phone,
           location: profile.location
         }
-        setUser(userData)
+        setUser(user)
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error)
-      // Fallback to basic auth data if profile fetch fails completely
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (authUser) {
-          const userData: User = {
-            id: authUser.id,
-            email: authUser.email || '',
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-            role: 'student',
-            profile_complete: false,
-            created_at: authUser.created_at || new Date().toISOString(),
-            avatar_url: authUser.user_metadata?.avatar_url,
-            bio: undefined,
-            year_level: undefined,
-            specialization: undefined,
-            phone: undefined,
-            location: undefined
-          }
-          setUser(userData)
-        }
-      } catch (fallbackError) {
-        console.error('Fallback profile creation failed:', fallbackError)
-      }
+      logError('Error fetching user profile', error)
+      // Safe fallback - always pass a valid object
+      setUser(buildBasicUser(authUser || {}))
     }
   }
 
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true)
+      setOperationLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
       if (error) {
-        console.error('Sign in error:', error)
-        
-        // Parse specific Supabase auth error messages for better UX
-        if (error.message.includes('Invalid login credentials')) {
-          return { success: false, error: '❌ Invalid email or password. Please check your credentials and try again.' }
+        logError('Sign in error', error)
+        return { 
+          success: false, 
+          error: sanitizeErrorMessage(error, '❌ Sign in failed. Please try again.')
         }
-        
-        if (error.message.includes('Email not confirmed')) {
-          return { success: false, error: '📧 Please check your email and confirm your account before signing in.' }
-        }
-        
-        if (error.message.includes('Too many requests')) {
-          return { success: false, error: '⏰ Too many sign-in attempts. Please wait a moment before trying again.' }
-        }
-        
-        if (error.message.includes('User not found')) {
-          return { success: false, error: '🔍 No account found with this email. Please check your email or sign up for a new account.' }
-        }
-        
-        if (error.message.includes('Invalid email')) {
-          return { success: false, error: '📧 Please enter a valid email address.' }
-        }
-        
-        if (error.message.includes('signups not allowed')) {
-          return { success: false, error: '🚫 New signups are currently disabled. Please contact support.' }
-        }
-        
-        if (error.message.includes('Database') || error.message.includes('JWT')) {
-          return { 
-            success: false, 
-            error: '🔧 Authentication service unavailable. Please try the Database Setup if this persists.' 
-          }
-        }
-        
-        // Fallback for other auth errors
-        return { success: false, error: `❌ ${error.message}` }
       }
 
-      if (data.session) {
-        setSession(data.session)
-        await fetchUserProfile(data.session.access_token)
-      }
-
+      // The onAuthStateChange listener will handle setting user/session
       return { success: true }
     } catch (error) {
-      console.error('Unexpected sign in error:', error)
-      return { success: false, error: '⚠️ An unexpected error occurred during sign in. Please try again.' }
+      logError('Unexpected sign in error', error)
+      return { 
+        success: false, 
+        error: sanitizeErrorMessage(error, '⚠️ An unexpected error occurred during sign in.')
+      }
     } finally {
-      setLoading(false)
+      setOperationLoading(false)
     }
   }
 
   const signUp = async (email: string, password: string, name: string, role: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true)
+      setOperationLoading(true)
       
-      // Debug logging
-      console.log('Starting sign up process for:', { email, name, role })
-      console.log('Supabase URL:', `https://${projectId}.supabase.co`)
-      console.log('Public key format:', publicAnonKey.substring(0, 20) + '...')
-      
-      // Use direct Supabase client signup with better error handling
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -326,49 +339,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (signUpError) {
-        console.error('Direct signup error:', signUpError)
-        
-        // Handle specific Supabase signup errors with improved messaging
-        if (signUpError.message.includes('Invalid API key')) {
-          return { success: false, error: '🔑 Authentication configuration error. Please check your Supabase setup.' }
+        logError('Direct signup error', signUpError)
+        return { 
+          success: false, 
+          error: sanitizeErrorMessage(signUpError, '❌ Signup failed. Please try again.')
         }
-        
-        if (signUpError.message.includes('User already registered') || signUpError.message.includes('already registered')) {
-          return { success: false, error: '👤 This email is already registered. Please sign in instead or use a different email.' }
-        }
-        
-        if (signUpError.message.includes('Invalid email') || signUpError.message.includes('email')) {
-          return { success: false, error: '📧 Please enter a valid email address.' }
-        }
-        
-        if (signUpError.message.includes('Password should be at least') || signUpError.message.includes('Password')) {
-          return { success: false, error: '🔒 Password must be at least 6 characters long.' }
-        }
-        
-        if (signUpError.message.includes('Password is too weak')) {
-          return { success: false, error: '💪 Password is too weak. Please use a stronger password with letters, numbers, and symbols.' }
-        }
-        
-        if (signUpError.message.includes('signups not allowed')) {
-          return { success: false, error: '🚫 New signups are currently disabled. Please contact support.' }
-        }
-        
-        if (signUpError.message.includes('rate limit')) {
-          return { success: false, error: '⏰ Too many signup attempts. Please wait a moment before trying again.' }
-        }
-        
-        if (signUpError.message.includes('Database') || signUpError.message.includes('JWT')) {
-          return { 
-            success: false, 
-            error: '🔧 Database setup needed. Please use the Database Setup page to configure authentication properly.' 
-          }
-        }
-        
-        // Fallback for other signup errors
-        return { success: false, error: `❌ Signup failed: ${signUpError.message}` }
       }
-
-      console.log('Direct signup successful:', signUpData)
 
       // Check if email confirmation is required
       if (signUpData.user && !signUpData.session) {
@@ -378,60 +354,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // If we have a session, set it up
-      if (signUpData.session) {
-        setSession(signUpData.session)
-        await fetchUserProfile(signUpData.session.access_token)
+      // Wait for profile creation to complete to avoid race conditions
+      if (signUpData.session?.user) {
+        await fetchUserProfile(signUpData.session.user, signUpData.session.access_token)
       }
 
+      // The onAuthStateChange listener will handle setting user/session
       return { success: true }
     } catch (error) {
-      console.error('Unexpected signup error:', error)
-      
-      // Handle specific error types with improved messaging
-      if (error instanceof Error) {
-        if (error.message.includes('Database error') || error.message.includes('JWT')) {
-          return { 
-            success: false, 
-            error: '🔧 Authentication setup needed. Please use the Database Setup page to configure authentication properly.' 
-          }
-        }
-        
-        if (error.message.includes('fetch') || error.message.includes('network')) {
-          return {
-            success: false,
-            error: '🌐 Network error. Please check your internet connection and try again.'
-          }
-        }
-        
-        if (error.message.includes('Invalid JWT')) {
-          return {
-            success: false,
-            error: '🔑 Invalid authentication token. Please contact support or check your Supabase configuration.'
-          }
-        }
-        
-        if (error.message.includes('timeout')) {
-          return {
-            success: false,
-            error: '⏰ Request timed out. Please check your connection and try again.'
-          }
-        }
+      logError('Unexpected signup error', error)
+      return { 
+        success: false, 
+        error: sanitizeErrorMessage(error, '⚠️ An unexpected error occurred during signup.')
       }
-      
-      return { success: false, error: '⚠️ An unexpected error occurred during signup. Please try the Database Setup if this persists.' }
     } finally {
-      setLoading(false)
+      setOperationLoading(false)
     }
   }
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
-      setUser(null)
-      setSession(null)
+      // The onAuthStateChange listener will handle clearing user/session
     } catch (error) {
-      console.error('Sign out error:', error)
+      logError('Sign out error', error)
+    }
+  }
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      })
+
+      if (error) {
+        logError('Password reset error', error)
+        return { 
+          success: false, 
+          error: sanitizeErrorMessage(error, 'Failed to send password reset email.')
+        }
+      }
+
+      return { 
+        success: true 
+      }
+    } catch (error) {
+      logError('Unexpected password reset error', error)
+      return { 
+        success: false, 
+        error: 'An unexpected error occurred. Please try again.'
+      }
     }
   }
 
@@ -456,11 +428,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .eq('id', user.id)
         .select()
-        .single()
 
       if (error) {
-        // If profile doesn't exist or no rows were updated, try to create it
-        if (error.code === 'PGRST116' || error.code === 'PGRST205') {
+        // Check if table doesn't exist or profile doesn't exist
+        const isTableMissing = error.code === 'PGRST205' || 
+                              error.code === '42P01' ||
+                              error.message?.includes('relation') ||
+                              error.message?.includes('does not exist') ||
+                              error.status === 404
+        
+        const isProfileMissing = error.code === 'PGRST116' || 
+                                error.code === 'PGRST205'
+
+        if (isTableMissing) {
+          // Table doesn't exist, just update local state (fallback mode)
+          setUser(prev => prev ? { ...prev, ...updates } : null)
+          return { success: true }
+        }
+        
+        if (isProfileMissing) {
+          // Profile doesn't exist, create it
           const { data: insertData, error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -477,30 +464,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               updated_at: new Date().toISOString()
             })
             .select()
-            .single()
 
           if (insertError) {
-            // If table doesn't exist, just update local state
-            if (insertError.code === 'PGRST205' || insertError.code === '42P01') {
-              setUser(prev => prev ? { ...prev, ...updates } : null)
-              return { success: true }
-            }
+            logError('Profile insert error', insertError)
             return { success: false, error: insertError.message }
           }
         } else {
+          logError('Profile update error', error)
           return { success: false, error: error.message }
         }
       }
 
-      // Update local user state
-      setUser(prev => prev ? { ...prev, ...updates } : null)
+      // Check if we actually got data back (successful update)
+      if (!data || data.length === 0) {
+        // Log for monitoring but don't show to users
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Update operation returned no data but completed successfully')
+        }
+      }
+
+      // Update local user state only after successful backend operation
+      setUser(prev => prev ? { 
+        ...prev, 
+        ...updates, 
+        profile_complete: !!(updates.name && updates.bio) || prev.profile_complete
+      } : null)
+      
       return { success: true }
     } catch (error) {
-      // Fallback to local state update only
-      setUser(prev => prev ? { ...prev, ...updates } : null)
-      return { success: true }
+      logError('Profile update error', error)
+      // Don't update local state if there was a network/unexpected error
+      return { 
+        success: false, 
+        error: 'Failed to update profile. Please check your connection and try again.'
+      }
     }
   }
+
+  // Use computed loading state
+  const loading = initialLoading || operationLoading
 
   const value: AuthContextType = {
     user,
@@ -508,6 +510,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPassword,
     loading,
     updateProfile
   }

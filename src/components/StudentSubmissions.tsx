@@ -28,11 +28,11 @@ import { Progress } from './ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Separator } from './ui/separator'
 import { Alert, AlertDescription } from './ui/alert'
-import { supabase } from '../utils/supabase/client'
+import { getSupabaseClient } from '../utils/supabase/client'
 import { useAuth } from './AuthContext'
 import { toast } from 'sonner@2.0.3'
 import { ImageWithFallback } from './figma/ImageWithFallback'
-import { projectId } from '../utils/supabase/info'
+import { projectId, publicAnonKey } from '../utils/supabase/info'
 
 interface Assignment {
   id: string
@@ -109,69 +109,114 @@ export function StudentSubmissions() {
   const [mediaPreview, setMediaPreview] = useState<string[]>([])
 
   useEffect(() => {
-    if (user) {
+    if (user && session) {
       fetchAssignments()
       fetchSubmissions()
     }
-  }, [user])
+  }, [user, session])
 
   const fetchAssignments = async () => {
     try {
+      if (!session?.access_token) {
+        console.log('No session or access token available')
+        setAssignments([])
+        setLoading(false)
+        return
+      }
+
+      console.log('Fetching assignments with access token:', session.access_token.substring(0, 20) + '...')
+      console.log('User ID:', user?.id)
+      console.log('User role:', user?.role)
+      
       const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-cfac176d/assignments`, {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         }
       })
 
+      console.log('Assignment fetch response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('Assignment fetch successful:', data)
         setAssignments(data.assignments || [])
       } else {
-        console.error('Failed to fetch assignments:', response.status)
-        // Fallback to mock data if backend fails
+        const errorText = await response.text()
+        console.error('Failed to fetch assignments:', response.status, errorText)
         setAssignments([])
-        toast.error('Failed to load assignments from server')
+        
+        if (response.status === 401) {
+          toast.error('Authentication failed. Please sign in again.')
+        } else {
+          toast.error(`Failed to load assignments: ${response.status}`)
+        }
       }
     } catch (error) {
       console.error('Error fetching assignments:', error)
-      // Fallback to mock data
       setAssignments([])
       toast.error('Failed to load assignments')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createTestAssignment = async () => {
+    if (!session?.access_token) {
+      toast.error('No authentication available')
+      return
+    }
+
+    try {
+      const testAssignment = {
+        title: 'Classic Chocolate Chip Cookies',
+        description: 'Learn to make perfect chocolate chip cookies from scratch with proper technique and timing.',
+        instructions: 'Follow the recipe exactly as written. Pay attention to mixing technique and baking time. Take photos of each major step.',
+        category: 'Baking & Pastry',
+        assignment_type: 'recipe',
+        difficulty_level: 'beginner',
+        estimated_time: 90,
+        max_score: 100,
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        is_active: true,
+        allow_late_submissions: true,
+        required_media_count: 3,
+        allow_video: true,
+        allow_multiple_files: true
+      }
+
+      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-cfac176d/assignments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testAssignment)
+      })
+
+      if (response.ok) {
+        toast.success('Test assignment created!')
+        fetchAssignments()
+      } else {
+        const errorText = await response.text()
+        console.error('Failed to create test assignment:', response.status, errorText)
+        toast.error('Failed to create test assignment')
+      }
+    } catch (error) {
+      console.error('Error creating test assignment:', error)
+      toast.error('Error creating test assignment')
     }
   }
 
   const fetchSubmissions = async () => {
     try {
-      // Mock data for demonstration
-      const mockSubmissions: Submission[] = [
-        {
-          id: '1',
-          assignment_id: '2',
-          title: 'My Knife Skills Video',
-          description: 'Demonstrating julienne, brunoise, and chiffonade techniques with carrots, onions, and basil.',
-          cooking_notes: 'Found the julienne cuts challenging at first but improved with practice.',
-          difficulty_encountered: 'Maintaining consistent thickness in julienne cuts',
-          time_taken: 35,
-          status: 'reviewed',
-          submitted_at: '2024-01-18T16:30:00Z',
-          is_late_submission: false,
-          assignment_title: 'Knife Skills Assessment',
-          feedback: {
-            overall_rating: 4,
-            overall_score: 85,
-            feedback_text: 'Excellent progress! Your knife grip has improved significantly. Focus on maintaining consistent speed for more uniform cuts.',
-            published_at: '2024-01-20T10:15:00Z'
-          }
-        }
-      ]
-
-      setSubmissions(mockSubmissions)
-      setLoading(false)
+      // TODO: Replace with actual Supabase query to fetch user submissions
+      // For now, set empty array to avoid mock data errors
+      
+      setSubmissions([])
     } catch (error) {
       console.error('Error fetching submissions:', error)
       toast.error('Failed to load submissions')
-      setLoading(false)
     }
   }
 
@@ -380,6 +425,18 @@ export function StudentSubmissions() {
             Submit your culinary work and track your progress
           </p>
         </div>
+        
+        {/* Debug button for testing */}
+        {user?.role === 'instructor' && (
+          <Button 
+            onClick={createTestAssignment}
+            variant="outline"
+            size="sm"
+            className="self-start"
+          >
+            Create Test Assignment
+          </Button>
+        )}
         
         {/* Quick Stats */}
         <div className="flex gap-4">

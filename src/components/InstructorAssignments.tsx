@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -94,6 +95,7 @@ export function InstructorAssignments() {
   const { user } = useAuth()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [studentSubmissions, setStudentSubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
@@ -124,77 +126,11 @@ export function InstructorAssignments() {
 
   const fetchAssignments = async () => {
     try {
-      // Mock data for demonstration - replace with actual Supabase query
-      const mockAssignments: Assignment[] = [
-        {
-          id: '1',
-          title: 'Classic French Onion Soup',
-          description: 'Create a traditional French onion soup with proper caramelization techniques and cheese gratinée.',
-          instructions: 'Focus on achieving deep caramelization of onions (45-60 minutes). Use proper beef stock and finish with gruyère cheese under the broiler. Document the caramelization process and final presentation.',
-          category: 'Soups & Stews',
-          assignment_type: 'recipe',
-          difficulty_level: 'intermediate',
-          estimated_time: 120,
-          max_score: 100,
-          due_date: '2024-02-15T23:59:59Z',
-          is_active: true,
-          allow_late_submissions: true,
-          required_media_count: 3,
-          allow_video: true,
-          allow_multiple_files: true,
-          created_at: '2024-01-10T10:00:00Z',
-          total_submissions: 12,
-          pending_submissions: 3,
-          reviewed_submissions: 9,
-          avg_score: 87.5
-        },
-        {
-          id: '2',
-          title: 'Knife Skills Assessment',
-          description: 'Demonstrate proper knife handling and cutting techniques including julienne, brunoise, and chiffonade.',
-          instructions: 'Video demonstration required. Show proper grip, stance, and cutting motion. Include close-ups of final cuts.',
-          category: 'Knife Skills',
-          assignment_type: 'technique',
-          difficulty_level: 'beginner',
-          estimated_time: 45,
-          max_score: 100,
-          due_date: '2024-02-20T23:59:59Z',
-          is_active: true,
-          allow_late_submissions: false,
-          required_media_count: 2,
-          allow_video: true,
-          allow_multiple_files: true,
-          created_at: '2024-01-08T14:30:00Z',
-          total_submissions: 18,
-          pending_submissions: 1,
-          reviewed_submissions: 17,
-          avg_score: 92.3
-        },
-        {
-          id: '3',
-          title: 'Chocolate Soufflé Challenge',
-          description: 'Master the art of soufflé making with proper folding technique and timing.',
-          instructions: 'Document the entire process from tempering chocolate to final presentation. Include both successes and failures.',
-          category: 'Desserts',
-          assignment_type: 'recipe',
-          difficulty_level: 'advanced',
-          estimated_time: 90,
-          max_score: 150,
-          due_date: '2024-02-25T23:59:59Z',
-          is_active: false,
-          allow_late_submissions: true,
-          required_media_count: 4,
-          allow_video: true,
-          allow_multiple_files: true,
-          created_at: '2024-01-12T09:15:00Z',
-          total_submissions: 8,
-          pending_submissions: 0,
-          reviewed_submissions: 8,
-          avg_score: 78.9
-        }
-      ]
-
-      setAssignments(mockAssignments)
+      // TODO: Replace with actual Supabase query to fetch assignments
+      // For now, set empty arrays to avoid mock data errors
+      
+      setAssignments([])
+      setStudentSubmissions([])
       setLoading(false)
     } catch (error) {
       console.error('Error fetching assignments:', error)
@@ -605,6 +541,10 @@ export function InstructorAssignments() {
           <TabsTrigger value="active" className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
             Active ({activeAssignments.length})
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Submissions ({totalPending})
           </TabsTrigger>
           <TabsTrigger value="inactive" className="flex items-center gap-2">
             <Clock className="w-4 h-4" />

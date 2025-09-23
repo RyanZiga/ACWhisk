@@ -398,82 +398,198 @@ export function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Platform Analytics</CardTitle>
-              <CardDescription>
-                View engagement and usage statistics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">
-                  Analytics Dashboard
-                </h3>
-                <p>
-                  Detailed analytics and reports will be
-                  available here
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">
-                        User Engagement
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Daily Active Users</span>
-                          <span className="font-medium">
-                            {stats.activeToday}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Recipe Views</span>
-                          <span className="font-medium">
-                            1,234
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Forum Interactions</span>
-                          <span className="font-medium">
-                            456
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">
-                        Growth Metrics
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>New Users (This Week)</span>
-                          <span className="font-medium text-green-600">
-                            +12
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>New Recipes (This Week)</span>
-                          <span className="font-medium text-blue-600">
-                            +8
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Forum Posts (This Week)</span>
-                          <span className="font-medium text-purple-600">
-                            +15
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* User Growth Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  User Growth
+                </CardTitle>
+                <CardDescription>
+                  New user registrations over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 flex items-end justify-between gap-2 p-4">
+                  {/* Simulated bar chart */}
+                  {[12, 18, 25, 32, 28, 45, 38].map((value, index) => (
+                    <div key={index} className="flex flex-col items-center gap-2">
+                      <div 
+                        className="bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-sm transition-all duration-500 hover:opacity-80"
+                        style={{ 
+                          height: `${(value / 45) * 200}px`,
+                          width: '32px'
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Platform Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Platform Activity
+                </CardTitle>
+                <CardDescription>
+                  Content creation and engagement
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Recipe Submissions</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-muted rounded-full h-2">
+                        <div className="bg-orange-500 h-2 rounded-full" style={{ width: '68%' }}></div>
+                      </div>
+                      <span className="text-sm font-medium">68%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Forum Participation</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-muted rounded-full h-2">
+                        <div className="bg-purple-500 h-2 rounded-full" style={{ width: '84%' }}></div>
+                      </div>
+                      <span className="text-sm font-medium">84%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Assignment Completion</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-muted rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{ width: '72%' }}></div>
+                      </div>
+                      <span className="text-sm font-medium">72%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Learning Progress</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-muted rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: '56%' }}></div>
+                      </div>
+                      <span className="text-sm font-medium">56%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* User Engagement Stats */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Detailed Analytics
+                </CardTitle>
+                <CardDescription>
+                  Comprehensive platform metrics and insights
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">User Engagement</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Daily Active Users</span>
+                        <span className="font-medium text-green-600">
+                          {stats.activeToday}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Recipe Views</span>
+                        <span className="font-medium">
+                          1,234
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Forum Interactions</span>
+                        <span className="font-medium">
+                          456
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Assignment Submissions</span>
+                        <span className="font-medium">
+                          89
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Growth Metrics</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>New Users (This Week)</span>
+                        <span className="font-medium text-green-600">
+                          +12
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>New Recipes (This Week)</span>
+                        <span className="font-medium text-blue-600">
+                          +8
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Forum Posts (This Week)</span>
+                        <span className="font-medium text-purple-600">
+                          +15
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Instructor Feedback</span>
+                        <span className="font-medium text-orange-600">
+                          +23
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Performance</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Avg. Session Duration</span>
+                        <span className="font-medium">
+                          12m 34s
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Course Completion Rate</span>
+                        <span className="font-medium text-green-600">
+                          78%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>User Satisfaction</span>
+                        <span className="font-medium text-blue-600">
+                          4.6/5
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Platform Uptime</span>
+                        <span className="font-medium text-green-600">
+                          99.9%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">

@@ -24,10 +24,10 @@ export function ServiceWorkerManager({ children }: ServiceWorkerManagerProps) {
 
   useEffect(() => {
     // Register service worker (disabled in development/preview environment and iframes)
- //   const isInIframe = window !== window.top
-    // if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production' && !isInIframe) {
-    //   registerServiceWorker()
-    // }
+    const isInIframe = window !== window.top
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production' && !isInIframe) {
+      registerServiceWorker()
+    }
 
     // Listen for online/offline events (notifications handled by OfflineIndicator)
     const handleOnline = () => {

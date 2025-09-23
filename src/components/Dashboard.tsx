@@ -185,83 +185,82 @@ export function Dashboard({ onTabChange }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Instructor Priority Section - Student Feedback */}
+      {/* Assignments Section */}
       <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-3xl p-6 glass-card">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-2xl bg-gradient-to-r from-orange-500/20 to-red-500/20 glow-orange">
-              <MessageCircle className="h-8 w-8 text-orange-400" />
+              <ClipboardCheck className="h-8 w-8 text-orange-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-1">Instructor Priority</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-1">
+                {user?.role === 'instructor' ? 'Assignment Management' : 'Assignments'}
+              </h2>
               <p className="text-muted-foreground">
-                3 student submissions waiting for your feedback
+                {user?.role === 'instructor' 
+                  ? 'Manage assignments and review student submissions'
+                  : 'View available assignments and track your progress'
+                }
               </p>
             </div>
           </div>
           
           <div className="flex flex-wrap gap-3">
-            <div className="glass-card p-3 text-center min-w-[80px]">
-              <div className="text-xl font-bold text-orange-400">3</div>
-              <div className="text-xs text-muted-foreground">Pending</div>
-            </div>
-            <div className="glass-card p-3 text-center min-w-[80px]">
-              <div className="text-xl font-bold text-blue-400">2</div>
-              <div className="text-xs text-muted-foreground">In Review</div>
-            </div>
-            <Button 
-              onClick={() => onTabChange('feedback')}
-              className="glass-button text-white border-0 px-6 py-3 rounded-2xl hover:glow-orange transition-all duration-300"
-            >
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              Review Submissions
-            </Button>
+            {user?.role === 'instructor' ? (
+              <>
+                <div className="glass-card p-3 text-center min-w-[80px]">
+                  <div className="text-xl font-bold text-orange-400">0</div>
+                  <div className="text-xs text-muted-foreground">Pending</div>
+                </div>
+                <div className="glass-card p-3 text-center min-w-[80px]">
+                  <div className="text-xl font-bold text-blue-400">0</div>
+                  <div className="text-xs text-muted-foreground">Active</div>
+                </div>
+                <Button 
+                  onClick={() => onTabChange('assignments')}
+                  className="glass-button text-white border-0 px-6 py-3 rounded-2xl hover:glow-orange transition-all duration-300"
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Manage Assignments
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="glass-card p-3 text-center min-w-[80px]">
+                  <div className="text-xl font-bold text-blue-400">0</div>
+                  <div className="text-xs text-muted-foreground">Available</div>
+                </div>
+                <div className="glass-card p-3 text-center min-w-[80px]">
+                  <div className="text-xl font-bold text-green-400">0</div>
+                  <div className="text-xs text-muted-foreground">Submitted</div>
+                </div>
+                <Button 
+                  onClick={() => onTabChange('assignments')}
+                  className="glass-button text-white border-0 px-6 py-3 rounded-2xl hover:glow-orange transition-all duration-300"
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  View Assignments
+                </Button>
+              </>
+            )}
           </div>
         </div>
         
-        {/* Quick Preview of Pending Submissions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="glass-input p-4 rounded-2xl hover:bg-white/20 transition-colors cursor-pointer" onClick={() => onTabChange('feedback')}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-              <div>
-                <div className="font-medium text-foreground">Emily Chen</div>
-                <div className="text-sm text-muted-foreground">French Onion Soup</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Clock className="w-3 h-3 text-orange-400" />
-              <span className="text-muted-foreground">Submitted 2 hours ago</span>
-            </div>
+        {/* Quick Preview - Empty State */}
+        <div className="mt-6 text-center py-8">
+          <div className="text-muted-foreground mb-4">
+            {user?.role === 'instructor' 
+              ? 'No assignments created yet. Create your first assignment to start engaging with students.'
+              : 'No assignments available yet. Check back later for new assignments from your instructors.'
+            }
           </div>
-          
-          <div className="glass-input p-4 rounded-2xl hover:bg-white/20 transition-colors cursor-pointer" onClick={() => onTabChange('feedback')}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-              <div>
-                <div className="font-medium text-foreground">Marcus Rodriguez</div>
-                <div className="text-sm text-muted-foreground">Homemade Pasta</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Clock className="w-3 h-3 text-orange-400" />
-              <span className="text-muted-foreground">Submitted 5 hours ago</span>
-            </div>
-          </div>
-          
-          <div className="glass-input p-4 rounded-2xl hover:bg-white/20 transition-colors cursor-pointer" onClick={() => onTabChange('feedback')}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
-              <div>
-                <div className="font-medium text-foreground">Sarah Thompson</div>
-                <div className="text-sm text-muted-foreground">Thai Green Curry</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Clock className="w-3 h-3 text-orange-400" />
-              <span className="text-muted-foreground">Submitted 8 hours ago</span>
-            </div>
-          </div>
+          <Button 
+            onClick={() => onTabChange('assignments')}
+            variant="outline"
+            className="glass-input border-white/20 text-foreground"
+          >
+            {user?.role === 'instructor' ? 'Create Assignment' : 'Check Assignments'}
+          </Button>
         </div>
       </div>
 

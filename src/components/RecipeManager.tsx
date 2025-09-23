@@ -716,14 +716,14 @@ export function RecipeManager() {
     const isLiked = likedRecipes.has(recipe.id)
     
     return (
-      <Card className="glass-card hover:shadow-lg transition-all duration-300 group overflow-hidden">
+      <Card className="glass-card hover:shadow-lg transition-all duration-300 group overflow-hidden w-full">
         <div onClick={() => setSelectedRecipe(recipe)} className="cursor-pointer">
-          <div className="aspect-video w-full bg-accent rounded-t-lg overflow-hidden relative">
+          <div className="aspect-[4/3] w-full bg-accent overflow-hidden relative">
             {recipe.image_url ? (
               recipe.media_type === 'video' ? (
                 <video
                   src={recipe.image_url}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   muted
                   loop
                   onMouseEnter={(e) => e.currentTarget.play()}
@@ -733,16 +733,16 @@ export function RecipeManager() {
                 <RecipeCardImage
                   src={recipe.image_url}
                   alt={recipe.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                 />
               )
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100">
-                <ChefHat className="h-16 w-16 text-muted-foreground" />
+                <ChefHat className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
               </div>
             )}
             {recipe.average_rating > 0 && (
-              <div className="absolute top-3 left-3 glass-card px-2 py-1 rounded-full">
+              <div className="absolute top-2 left-2 sm:top-3 sm:left-3 glass-card px-2 py-1 rounded-full">
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                   <span className="text-xs font-medium">{recipe.average_rating.toFixed(1)}</span>
@@ -750,11 +750,11 @@ export function RecipeManager() {
               </div>
             )}
           </div>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
-                <h3 className="font-semibold line-clamp-1 text-lg">{recipe.title}</h3>
-                <Badge className={getDifficultyColor(recipe.difficulty)} variant="secondary">
+          <CardContent className="p-3 sm:p-4">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold line-clamp-2 text-base sm:text-lg flex-1 min-w-0">{recipe.title}</h3>
+                <Badge className={getDifficultyColor(recipe.difficulty)} variant="secondary" className="text-xs shrink-0">
                   {recipe.difficulty}
                 </Badge>
               </div>
@@ -763,31 +763,31 @@ export function RecipeManager() {
                 {recipe.description}
               </p>
               
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
+                <div className="flex items-center gap-1 shrink-0">
                   <Clock className="h-3 w-3" />
-                  {(recipe.prep_time || 0) + (recipe.cook_time || 0)}m
+                  <span className="whitespace-nowrap">{(recipe.prep_time || 0) + (recipe.cook_time || 0)}m</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Users className="h-3 w-3" />
-                  {recipe.servings} servings
+                  <span className="whitespace-nowrap">{recipe.servings} servings</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <MessageCircle className="h-3 w-3" />
-                  {recipe.rating_count || 0} reviews
+                  <span className="whitespace-nowrap">{recipe.rating_count || 0} reviews</span>
                 </div>
               </div>
               
               {recipe.tags && recipe.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {recipe.tags.slice(0, 3).map((tag: string, index: number) => (
+                  {recipe.tags.slice(0, 2).map((tag: string, index: number) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {tag}
                     </Badge>
                   ))}
-                  {recipe.tags.length > 3 && (
+                  {recipe.tags.length > 2 && (
                     <Badge variant="outline" className="text-xs">
-                      +{recipe.tags.length - 3}
+                      +{recipe.tags.length - 2}
                     </Badge>
                   )}
                 </div>
@@ -882,7 +882,7 @@ export function RecipeManager() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 py-6 sm:px-6">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -901,9 +901,9 @@ export function RecipeManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-[7px] py-[14px]">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-[0px] mt-[0px] mr-[0px] mb-[25px] ml-[0px]">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Recipe Collection</h1>
           <p className="text-muted-foreground">
@@ -918,13 +918,13 @@ export function RecipeManager() {
               placeholder="Search recipes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64 glass-input"
+              className="pl-[30px] w-64 glass-input pt-[3px] pr-[10px] pb-[3px]"
             />
           </div>
           
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button className="glass-button">
+              <Button className="glass-button m-[0px] px-[10px] py-[5px] text-[12px]">
                 <Plus className="w-4 h-4 mr-2" />
                 Share Your Recipe
               </Button>
