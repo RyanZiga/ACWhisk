@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './components/AuthContext'
 import { ThemeProvider } from './components/ThemeContext'
 import { NotificationProvider } from './components/ui/notification'
 import { ErrorBoundary, AsyncErrorBoundary } from './components/ErrorBoundary'
+import { ServiceWorkerManager } from './components/ServiceWorkerManager'
+import { Auth } from './components/Auth'
 import { Layout } from './components/Layout'
 import { Dashboard } from './components/Dashboard'
 import { OfflineIndicator } from './components/OfflineIndicator'
@@ -18,6 +20,7 @@ const ChatAssistant = lazy(() => import('./components/ChatAssistant').then(m => 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })))
 const ProfileSettings = lazy(() => import('./components/ProfileSettings').then(m => ({ default: m.ProfileSettings })))
 const DigitalPortfolio = lazy(() => import('./components/DigitalPortfolio').then(m => ({ default: m.DigitalPortfolio })))
+const DatabaseSetup = lazy(() => import('./components/DatabaseSetup').then(m => ({ default: m.DatabaseSetup })))
 const ProfileInitializer = lazy(() => import('./components/ProfileInitializer').then(m => ({ default: m.ProfileInitializer })))
 const RealTimeNotifications = lazy(() => import('./components/RealTimeNotifications').then(m => ({ default: m.RealTimeNotifications })))
 const StudentFeedback = lazy(() => import('./components/StudentFeedback').then(m => ({ default: m.StudentFeedback })))
@@ -252,6 +255,7 @@ export default function App() {
     <AsyncErrorBoundary>
       <ThemeProvider>
         <NotificationProvider>
+          <ServiceWorkerManager>
             <AuthProvider>
               <ErrorBoundary>
                 <AppContent />
@@ -259,6 +263,7 @@ export default function App() {
                 <Toaster />
               </ErrorBoundary>
             </AuthProvider>
+          </ServiceWorkerManager>
         </NotificationProvider>
       </ThemeProvider>
     </AsyncErrorBoundary>
