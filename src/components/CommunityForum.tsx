@@ -145,7 +145,7 @@ export function CommunityForum() {
   const fetchPosts = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-cfac176d/forum/posts`, {
+      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-cfac176d/forum`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token || ''}`,
           'Content-Type': 'application/json'
