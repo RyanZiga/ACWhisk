@@ -7,6 +7,7 @@ import { Auth } from './components/Auth'
 import { Layout } from './components/Layout'
 import { OfflineIndicator } from './components/OfflineIndicator'
 import { Toaster } from './components/ui/sonner'
+import { ToastContainer } from 'react-toastify'
 import { MotionSpinner } from './components/ui/motion'
 import { getSupabaseClient } from './utils/supabase/client'
 
@@ -147,6 +148,7 @@ export default function App() {
     <AsyncErrorBoundary>
       <ThemeProvider>
         <NotificationProvider>
+        <ToastContainer />
           <AuthProvider>
             <ErrorBoundary>
               <AppContent />

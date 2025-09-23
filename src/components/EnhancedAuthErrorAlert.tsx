@@ -1,53 +1,31 @@
 import React from "react";
 import { Alert, AlertDescription } from "./ui/alert";
-import {
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Info,
-} from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react";
 
 interface EnhancedAuthErrorAlertProps {
   error?: string;
   success?: string;
 }
 
-export function EnhancedAuthErrorAlert({
-  error,
-  success,
-}: EnhancedAuthErrorAlertProps) {
+export function EnhancedAuthErrorAlert({ error, success }: EnhancedAuthErrorAlertProps) {
   if (!error && !success) return null;
 
-  // Debug logging to see what we're receiving
-  React.useEffect(() => {
-    if (error) {
-      console.log("🚨 EnhancedAuthErrorAlert received error:", error);
-    }
-    if (success) {
-      console.log("✅ EnhancedAuthErrorAlert received success:", success);
-    }
-  }, [error, success]);
-
-  // Determine alert type and styling based on content
-  const getAlertType = () => {
+  // Determine alert type
+  const getAlertType = (): "success" | "error" | "warning" | "info" => {
     if (success) return "success";
+
     if (
-      error?.includes("❌") ||
-      error?.includes("Invalid login credentials") ||
-      error?.includes("Invalid email or password") ||
       error?.toLowerCase().includes("invalid") ||
       error?.toLowerCase().includes("credentials") ||
-      error?.toLowerCase().includes("authentication")
-    )
-      return "error";
-    if (
-      error?.includes("⏰") ||
-      error?.includes("📧") ||
-      error?.includes("Too many")
-    )
-      return "warning";
-    if (error?.includes("🔧") || error?.includes("Database"))
-      return "info";
+      error?.toLowerCase().includes("authentication") ||
+      error?.includes("already registered") ||
+      error?.includes("sign in failed")
+    ) return "error";
+
+    if (error?.toLowerCase().includes("too many") || error?.toLowerCase().includes("rate limit")) return "warning";
+
+    if (error?.toLowerCase().includes("database") || error?.includes("trigger function")) return "info";
+
     return "error";
   };
 
@@ -55,177 +33,99 @@ export function EnhancedAuthErrorAlert({
 
   const getIcon = () => {
     switch (alertType) {
-      case "success":
-        return <CheckCircle className="h-4 w-4" />;
-      case "error":
-        return <XCircle className="h-4 w-4" />;
-      case "warning":
-        return <AlertTriangle className="h-4 w-4" />;
-      case "info":
-        return <Info className="h-4 w-4" />;
-      default:
-        return <XCircle className="h-4 w-4" />;
+      case "success": return <CheckCircle className="h-5 w-5" />;
+      case "error": return <XCircle className="h-5 w-5" />;
+      case "warning": return <AlertTriangle className="h-5 w-5" />;
+      case "info": return <Info className="h-5 w-5" />;
+      default: return <XCircle className="h-5 w-5" />;
     }
   };
 
   const getAlertStyles = () => {
     switch (alertType) {
-      case "success":
-        return "bg-green-500/10 border-green-500/20 text-green-400";
-      case "error":
-        return "bg-red-500/10 border-red-500/20 text-red-400";
-      case "warning":
-        return "bg-yellow-500/10 border-yellow-500/20 text-yellow-400";
-      case "info":
-        return "bg-blue-500/10 border-blue-500/20 text-blue-400";
-      default:
-        return "bg-red-500/10 border-red-500/20 text-red-400";
+      case "success": return "bg-green-100 border border-green-500 text-green-800";
+      case "error": return "bg-red-100 border border-red-500 text-red-800";
+      case "warning": return "bg-yellow-100 border border-yellow-500 text-yellow-800";
+      case "info": return "bg-blue-100 border border-blue-500 text-blue-800";
+      default: return "bg-red-100 border border-red-500 text-red-800";
     }
   };
 
   return (
-    <Alert className={`glass-card border ${getAlertStyles()}`}>
+    <Alert className={`rounded-xl p-4 ${getAlertStyles()}`} role="alert" aria-live="polite">
       <AlertDescription>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5">{getIcon()}</div>
             <div className="flex-1">
-              <p className="leading-relaxed">
-                {error || success}
-              </p>
+              <p className="leading-relaxed font-medium">{error || success}</p>
             </div>
           </div>
 
-          {/* Enhanced help sections for specific error types */}
-          {error &&
-            (error.includes(
-              "Database error during user creation",
-            ) ||
-              error.includes(
-                "Database error saving new user",
-              )) && (
-              <div className="text-sm bg-red-500/10 border border-red-500/20 rounded-lg p-3 mt-3">
-                <p className="text-red-400 font-medium flex items-center gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Critical Database Issue Detected
-                </p>
-                <p className="text-red-300 mt-2">
-                  This is the exact error preventing user
-                  registration. Go to the{" "}
-                  <strong>Database Setup</strong> section and
-                  use the{" "}
-                  <strong>
-                    Database Authentication Checker
-                  </strong>{" "}
-                  for an automatic fix script.
-                </p>
-              </div>
-            )}
-
-          {error &&
-            error.includes("Database") &&
-            !error.includes(
-              "Database error during user creation",
-            ) &&
-            !error.includes(
-              "Database error saving new user",
-            ) && (
-              <div className="text-sm bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mt-3">
-                <p className="text-blue-400 font-medium flex items-center gap-2">
-                  <Info className="h-4 w-4" />
-                  Need help fixing this?
-                </p>
-                <p className="text-blue-300 mt-2">
-                  Run the{" "}
-                  <strong>
-                    Database Authentication Checker
-                  </strong>{" "}
-                  in the Database Setup section for detailed
-                  troubleshooting and automatic fixes.
-                </p>
-              </div>
-            )}
-
-          {error && error.includes("trigger function") && (
-            <div className="text-sm bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 mt-3">
-              <p className="text-purple-400 font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Quick Fix Available
-              </p>
-              <p className="text-purple-300 mt-2">
-                This error typically means RLS is enabled on the
-                auth.users table. Use the Database
-                Authentication Checker for an automatic fix.
-              </p>
-            </div>
-          )}
-
-          {/* New help sections for common authentication errors */}
-          {error &&
-            (error.includes("Invalid email or password") ||
-             error.includes("Invalid login credentials")) && (
-              <div className="text-sm bg-gray-500/10 border border-gray-500/20 rounded-lg p-3 mt-3">
-                <p className="text-gray-400 font-medium flex items-center gap-2">
-                  <Info className="h-4 w-4" />
-                  Login Help
-                </p>
-                <div className="text-gray-300 mt-2 space-y-1">
-                  <p>• Double-check your email and password</p>
-                  <p>• Make sure Caps Lock is not enabled</p>
-                  <p>• Ensure you're using the correct account</p>
-                  <p>• If you're a new user, please sign up first</p>
+          {/* Help sections */}
+          {error && (
+            <>
+              {/* Database issues */}
+              {(error.toLowerCase().includes("database error") || error.toLowerCase().includes("trigger function")) && (
+                <div className="bg-blue-50 border border-blue-300 text-blue-700 rounded-lg p-3">
+                  <p className="font-medium flex items-center gap-2">
+                    <Info className="h-4 w-4" /> Database Assistance
+                  </p>
+                  <p className="text-sm mt-1">
+                    Check the Database Setup section and run the Database Authentication Checker for automatic fixes.
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-          {error && error.includes("already registered") && (
-            <div className="text-sm bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mt-3">
-              <p className="text-blue-400 font-medium flex items-center gap-2">
-                <Info className="h-4 w-4" />
-                Account Already Exists
-              </p>
-              <p className="text-blue-300 mt-2">
-                This email is already associated with an
-                account. Please use the <strong>Sign In</strong>{" "}
-                tab to access your existing account.
-              </p>
-            </div>
-          )}
+              {/* Login help */}
+              {(error.toLowerCase().includes("invalid") || error.toLowerCase().includes("credentials") || error.toLowerCase().includes("sign in failed")) && (
+                <div className="bg-gray-50 border border-gray-300 text-gray-700 rounded-lg p-3">
+                  <p className="font-medium flex items-center gap-2">
+                    <Info className="h-4 w-4" /> Login Assistance
+                  </p>
+                  <ul className="text-sm mt-1 list-disc list-inside space-y-1">
+                    <li>Double-check your email and password</li>
+                    <li>Ensure Caps Lock is off</li>
+                    <li>Verify you’re using the correct account</li>
+                    <li>If new, please sign up first</li>
+                  </ul>
+                </div>
+              )}
 
-          {error && error.includes("Too many") && (
-            <div className="text-sm bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mt-3">
-              <p className="text-yellow-400 font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Rate Limit
-              </p>
-              <p className="text-yellow-300 mt-2">
-                Please wait a few minutes before trying again.
-                This helps protect our services from abuse.
-              </p>
-            </div>
-          )}
+              {/* Already registered */}
+              {error.toLowerCase().includes("already registered") && (
+                <div className="bg-blue-50 border border-blue-300 text-blue-700 rounded-lg p-3">
+                  <p className="font-medium flex items-center gap-2">
+                    <Info className="h-4 w-4" /> Account Exists
+                  </p>
+                  <p className="text-sm mt-1">
+                    This email is already linked to an account. Use the Sign In tab to access it.
+                  </p>
+                </div>
+              )}
 
-          {/* Captcha error help section */}
-          {error && (error.includes("captcha") || error.includes("Security verification failed") || error.includes("🤖")) && (
-            <div className="text-sm bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mt-3">
-              <p className="text-orange-400 font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Captcha Configuration Issue
-              </p>
-              <div className="text-orange-300 mt-2 space-y-2">
-                <p className="font-medium">Quick Fix Steps:</p>
-                <ol className="list-decimal list-inside space-y-1 text-sm">
-                  <li>Go to your <strong>Supabase Dashboard</strong></li>
-                  <li>Navigate to <strong>Authentication → Settings</strong></li>
-                  <li>Scroll to <strong>"Security Settings"</strong></li>
-                  <li>Toggle <strong>OFF</strong> the "Enable Captcha" option</li>
-                  <li>Save changes and try again</li>
-                </ol>
-                <p className="text-xs mt-2 text-orange-200">
-                  💡 For development, disabling captcha is recommended. Re-enable it for production if needed.
-                </p>
-              </div>
-            </div>
+              {/* Rate limits */}
+              {error.toLowerCase().includes("too many") && (
+                <div className="bg-yellow-50 border border-yellow-300 text-yellow-700 rounded-lg p-3">
+                  <p className="font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> Rate Limit
+                  </p>
+                  <p className="text-sm mt-1">Please wait a few minutes before trying again.</p>
+                </div>
+              )}
+
+              {/* Captcha issues */}
+              {(error.toLowerCase().includes("captcha") || error.toLowerCase().includes("security verification failed")) && (
+                <div className="bg-orange-50 border border-orange-300 text-orange-700 rounded-lg p-3">
+                  <p className="font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> Captcha Issue
+                  </p>
+                  <p className="text-sm mt-1">
+                    Disable Captcha in Supabase Auth settings for development and try again.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </AlertDescription>
