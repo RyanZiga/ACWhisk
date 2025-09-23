@@ -6,6 +6,7 @@ import { Button } from './ui/button'
 import { Alert, AlertDescription } from './ui/alert'
 import { AuthDiagnostics } from './AuthDiagnostics'
 import { SimpleDatabaseChecker } from './SimpleDatabaseChecker'
+import AuthDiagnostic from './AuthDiagnostic'
 import { Badge } from './ui/badge'
 import { MotionCard } from './ui/motion'
 import { 

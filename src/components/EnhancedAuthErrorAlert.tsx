@@ -204,6 +204,29 @@ export function EnhancedAuthErrorAlert({
               </p>
             </div>
           )}
+
+          {/* Captcha error help section */}
+          {error && (error.includes("captcha") || error.includes("Security verification failed") || error.includes("🤖")) && (
+            <div className="text-sm bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mt-3">
+              <p className="text-orange-400 font-medium flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Captcha Configuration Issue
+              </p>
+              <div className="text-orange-300 mt-2 space-y-2">
+                <p className="font-medium">Quick Fix Steps:</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>Go to your <strong>Supabase Dashboard</strong></li>
+                  <li>Navigate to <strong>Authentication → Settings</strong></li>
+                  <li>Scroll to <strong>"Security Settings"</strong></li>
+                  <li>Toggle <strong>OFF</strong> the "Enable Captcha" option</li>
+                  <li>Save changes and try again</li>
+                </ol>
+                <p className="text-xs mt-2 text-orange-200">
+                  💡 For development, disabling captcha is recommended. Re-enable it for production if needed.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </AlertDescription>
     </Alert>

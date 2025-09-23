@@ -67,6 +67,15 @@ const sanitizeErrorMessage = (error: any, fallbackMessage: string): string => {
   
   // Apply user-friendly sanitization in both development and production
   // Handle AuthApiError prefixes and various error formats
+  
+  // Handle captcha errors first (most urgent)
+  if (errorMessage.includes('captcha verification process failed') ||
+      errorMessage.includes('captcha_verification_failed') ||
+      errorMessage.includes('captcha') ||
+      errorMessage.includes('Captcha')) {
+    return '🤖 Security verification failed. This is likely due to captcha settings in your Supabase project. Please disable captcha in your Supabase Dashboard → Authentication → Settings → Security Settings, or contact your administrator.'
+  }
+  
   if (errorMessage.includes('Invalid login credentials') || 
       errorMessage.includes('Invalid email or password') ||
       errorMessage.includes('invalid_credentials')) {
