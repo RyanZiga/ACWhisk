@@ -19,8 +19,8 @@ app.use("*", logger(console.log));
 
 // Initialize Supabase client
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") || "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+  Deno.env.get("SUPABASE_URL") || "https://boagxkdkcpqwhnawyvrj.supabase.co",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvYWd4a2RrY3Bxd2huYXd5dnJqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjUzMTg0NCwiZXhwIjoyMDcyMTA3ODQ0fQ.JJkBbeFZZtLrGzd39TiRmpLZt9cYPv0DmfmvBblRDOs",
 );
 
 // Bucket initialization removed - buckets already exist
