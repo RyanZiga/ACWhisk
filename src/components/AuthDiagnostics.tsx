@@ -21,7 +21,7 @@ interface DiagnosticResult {
   solution?: string
 }
 
-export function AuthDiagnostic() {
+export function AuthDiagnostics() {
   const [results, setResults] = useState<DiagnosticResult[]>([])
   const [isRunning, setIsRunning] = useState(false)
 
@@ -311,4 +311,4 @@ export function AuthDiagnostic() {
   )
 }
 
-export default AuthDiagnostic
+export default AuthDiagnostics
