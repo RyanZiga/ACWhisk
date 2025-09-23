@@ -34,7 +34,6 @@ import {
   MoreHorizontal
 } from 'lucide-react'
 import { ImageWithFallback } from './figma/ImageWithFallback'
-import { OptimizedMediaUpload } from './OptimizedMediaUpload'
 import { OptimizedImage, RecipeCardImage } from './OptimizedImage'
 import { useNotifications } from './ui/notification'
 
